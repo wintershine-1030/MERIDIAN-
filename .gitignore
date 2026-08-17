@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+/tmp/
+*.tsbuildinfo
+
+# Local planning material; never part of the published repository.
+/*.txt
