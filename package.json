@@ -1,0 +1,19 @@
+{
+  "name": "meridian",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A declarative data-contract compiler and migration planner.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "5.6.3"
+  }
+}
