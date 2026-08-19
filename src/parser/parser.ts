@@ -81,7 +81,14 @@ export function parseTable(tokens: readonly Token[], source: string, file: strin
 
   function parseType(): TypeReference {
     const nameToken = expectKind("Identifier", "a type name");
-    return typeReference({ span: nameToken.span, name: nameToken.text, nullable: false });
+    let end = nameToken.span.end;
+    let nullable = false;
+    if (cursor.check("Question")) {
+      const question = cursor.advance();
+      nullable = true;
+      end = question.span.end;
+    }
+    return typeReference({ span: { start: nameToken.span.start, end }, name: nameToken.text, nullable });
   }
 
   function parseColumn(): ColumnDeclaration {
