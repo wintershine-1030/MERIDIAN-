@@ -111,8 +111,20 @@ export function parseTable(tokens: readonly Token[], source: string, file: strin
   const nameToken = expectKind("Identifier", "a table name");
   expectKind("LeftBrace", "'{'");
 
+  function synchronizeToColumnStart(): void {
+    while (!cursor.atEnd() && !cursor.check("RightBrace") && !cursor.check("Identifier")) {
+      cursor.advance();
+    }
+  }
+
   const columns: ColumnDeclaration[] = [];
   while (!cursor.atEnd() && !cursor.check("RightBrace")) {
+    if (!cursor.check("Identifier")) {
+      report(`unexpected token '${describeToken(cursor.peek())}'`, cursor.peek().span);
+      cursor.advance();
+      synchronizeToColumnStart();
+      continue;
+    }
     columns.push(parseColumn());
   }
 
