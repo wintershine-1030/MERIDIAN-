@@ -1,0 +1,5 @@
+table users {
+  id uuid
+  email text
+  bio text?
+}

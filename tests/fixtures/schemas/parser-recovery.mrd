@@ -1,0 +1,5 @@
+table t {
+  id uuid
+  42
+  name text
+}
