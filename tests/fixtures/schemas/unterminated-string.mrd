@@ -1,0 +1,3 @@
+table t {
+  name text? default "unterminated
+}

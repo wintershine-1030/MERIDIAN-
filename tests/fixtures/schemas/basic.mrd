@@ -1,0 +1,16 @@
+schema catalog v1
+
+table users {
+  id          uuid        primary key
+  email       text        not null unique
+  created_by  uuid?       references users.id on delete set null
+  display     text?       default "anonymous"
+}
+
+table posts {
+  id        uuid    primary key
+  author    uuid    not null references users.id on delete cascade
+  title     text    not null
+  body      text?
+  index (author, title) unique
+}

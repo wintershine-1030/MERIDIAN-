@@ -1,0 +1,4 @@
+// a leading comment
+table t {
+  name text? default "line1\nline2 \"quoted\" end"
+}
