@@ -13,6 +13,13 @@ export default tseslint.config(
       "no-console": "warn",
       // tsc already catches undefined references; no-undef false-positives on TS-only syntax.
       "no-undef": "off",
+    },
+  },
+  {
+    // The determinism contract binds the compiler itself, not the test harness:
+    // tests legitimately read fixtures from disk, which needs fs/path.
+    files: ["src/**/*.ts"],
+    rules: {
       "no-restricted-properties": [
         "error",
         { object: "Date", property: "now", message: "Date.now() is non-deterministic; inject a clock instead." },
