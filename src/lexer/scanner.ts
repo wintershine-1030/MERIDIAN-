@@ -140,7 +140,7 @@ export function lex(source: string, file: string): LexResult {
         pos++;
       }
       if (!closed) {
-        report(LEX_UNTERMINATED_STRING, "error", "unterminated string literal", { start, end: start + 1 });
+        report(LEX_UNTERMINATED_STRING, "error", "unterminated string literal", { start, end: pos });
       }
       tokens.push({ kind: "String", span: { start, end: pos }, text: source.slice(start, pos), value });
       continue;
