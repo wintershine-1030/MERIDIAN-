@@ -1,6 +1,6 @@
 import { createDiagnostic, type Diagnostic, type Severity } from "../errors/diagnostic.js";
 import { LineIndex, type Span } from "../util/span.js";
-import { LEX_UNEXPECTED_CHARACTER, LEX_UNTERMINATED_STRING } from "./codes.js";
+import { LEX_UNEXPECTED_CHARACTER, LEX_UNKNOWN_ESCAPE_SEQUENCE, LEX_UNTERMINATED_STRING } from "./codes.js";
 import type { Token, TokenKind } from "./token.js";
 
 export interface LexResult {
@@ -16,6 +16,14 @@ const PUNCTUATION: Record<string, TokenKind> = {
   ",": "Comma",
   ".": "Dot",
   "?": "Question",
+};
+
+const ESCAPES: Record<string, string> = {
+  '"': '"',
+  "\\": "\\",
+  n: "\n",
+  t: "\t",
+  r: "\r",
 };
 
 function isIdentifierStart(ch: string): boolean {
@@ -57,6 +65,16 @@ export function lex(source: string, file: string): LexResult {
       continue;
     }
 
+    if (ch === "/" && source[pos + 1] === "/") {
+      const start = pos;
+      pos += 2;
+      while (pos < source.length && source[pos] !== "\n") {
+        pos++;
+      }
+      tokens.push({ kind: "Comment", span: { start, end: pos }, text: source.slice(start, pos) });
+      continue;
+    }
+
     const punctuationKind = PUNCTUATION[ch];
     if (punctuationKind !== undefined) {
       tokens.push({ kind: punctuationKind, span: { start: pos, end: pos + 1 }, text: ch });
@@ -94,6 +112,29 @@ export function lex(source: string, file: string): LexResult {
           pos++;
           closed = true;
           break;
+        }
+        if (c === "\n") {
+          break;
+        }
+        if (c === "\\") {
+          const escapeChar = source[pos + 1];
+          const resolved = escapeChar === undefined ? undefined : ESCAPES[escapeChar];
+          if (resolved !== undefined) {
+            value += resolved;
+            pos += 2;
+            continue;
+          }
+          report(LEX_UNKNOWN_ESCAPE_SEQUENCE, "warning", `unknown escape sequence '\\${escapeChar ?? ""}'`, {
+            start: pos,
+            end: pos + 2,
+          });
+          if (escapeChar !== undefined) {
+            value += escapeChar;
+            pos += 2;
+          } else {
+            pos += 1;
+          }
+          continue;
         }
         value += c;
         pos++;
