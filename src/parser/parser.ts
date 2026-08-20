@@ -4,6 +4,7 @@ import {
   defaultClause as makeDefaultClause,
   indexDeclaration as makeIndexDeclaration,
   referencesClause as makeReferencesClause,
+  schemaFile as makeSchemaFile,
   stringLiteral as makeStringLiteral,
   tableDeclaration as makeTableDeclaration,
   typeReference as makeTypeReference,
@@ -14,6 +15,7 @@ import type {
   IndexDeclaration,
   ReferencesClause,
   ReferentialAction,
+  SchemaFile,
   TableDeclaration,
   TypeReference,
 } from "../ast/nodes.js";
@@ -24,6 +26,11 @@ import { PARSE_UNEXPECTED_TOKEN } from "./codes.js";
 
 export interface ParseTableResult {
   readonly table: TableDeclaration;
+  readonly diagnostics: readonly Diagnostic[];
+}
+
+export interface ParseSchemaFileResult {
+  readonly file: SchemaFile;
   readonly diagnostics: readonly Diagnostic[];
 }
 
@@ -297,4 +304,39 @@ export function parseTable(tokens: readonly Token[], source: string, file: strin
   const ctx = new ParserContext(tokens, source, file);
   const table = parseTableBody(ctx);
   return { table, diagnostics: ctx.diagnostics };
+}
+
+function synchronizeToTableStart(ctx: ParserContext): void {
+  while (!ctx.atEnd() && !ctx.checkIdentifierText("table")) {
+    ctx.advance();
+  }
+}
+
+export function parseSchemaFile(tokens: readonly Token[], source: string, file: string): ParseSchemaFileResult {
+  const ctx = new ParserContext(tokens, source, file);
+  const start = ctx.peek().span.start;
+  ctx.expectIdentifierText("schema");
+  const catalogToken = ctx.expectKind("Identifier", "a catalog name");
+  const versionToken = ctx.expectKind("Identifier", "a version");
+
+  const tables: TableDeclaration[] = [];
+  while (!ctx.atEnd()) {
+    if (ctx.checkIdentifierText("table")) {
+      tables.push(parseTableBody(ctx));
+      continue;
+    }
+    ctx.report(`unexpected token '${describeToken(ctx.peek())}'`, ctx.peek().span);
+    ctx.advance();
+    synchronizeToTableStart(ctx);
+  }
+
+  return {
+    file: makeSchemaFile({
+      span: { start, end: ctx.peek().span.end },
+      catalog: catalogToken.text,
+      version: versionToken.text,
+      tables,
+    }),
+    diagnostics: ctx.diagnostics,
+  };
 }
