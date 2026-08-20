@@ -1,7 +1,9 @@
 import {
   columnDeclaration as makeColumnDeclaration,
+  columnReference as makeColumnReference,
   defaultClause as makeDefaultClause,
   indexDeclaration as makeIndexDeclaration,
+  referencesClause as makeReferencesClause,
   stringLiteral as makeStringLiteral,
   tableDeclaration as makeTableDeclaration,
   typeReference as makeTypeReference,
@@ -11,6 +13,7 @@ import type {
   DefaultClause,
   IndexDeclaration,
   ReferencesClause,
+  ReferentialAction,
   TableDeclaration,
   TypeReference,
 } from "../ast/nodes.js";
@@ -111,6 +114,60 @@ function parseType(ctx: ParserContext): TypeReference {
   return makeTypeReference({ span: { start: nameToken.span.start, end }, name: nameToken.text, nullable });
 }
 
+function parseReferentialAction(ctx: ParserContext): { action: ReferentialAction; end: number } {
+  if (ctx.checkIdentifierText("cascade")) {
+    const token = ctx.advance();
+    return { action: "cascade", end: token.span.end };
+  }
+  if (ctx.checkIdentifierText("restrict")) {
+    const token = ctx.advance();
+    return { action: "restrict", end: token.span.end };
+  }
+  if (ctx.checkIdentifierText("no") && ctx.checkIdentifierText("action", 1)) {
+    ctx.advance();
+    const token = ctx.advance();
+    return { action: "no action", end: token.span.end };
+  }
+  if (ctx.checkIdentifierText("set") && ctx.checkIdentifierText("null", 1)) {
+    ctx.advance();
+    const token = ctx.advance();
+    return { action: "set null", end: token.span.end };
+  }
+  if (ctx.checkIdentifierText("set") && ctx.checkIdentifierText("default", 1)) {
+    ctx.advance();
+    const token = ctx.advance();
+    return { action: "set default", end: token.span.end };
+  }
+  const token = ctx.peek();
+  ctx.report(`expected a referential action, found '${describeToken(token)}'`, token.span);
+  return { action: "no action", end: ctx.advance().span.end };
+}
+
+function parseReferencesClause(ctx: ParserContext): ReferencesClause {
+  const keyword = ctx.expectIdentifierText("references");
+  const tableToken = ctx.expectKind("Identifier", "a referenced table name");
+  ctx.expectKind("Dot", "'.'");
+  const columnToken = ctx.expectKind("Identifier", "a referenced column name");
+  let end = columnToken.span.end;
+  let onDelete: ReferentialAction | null = null;
+  if (ctx.checkIdentifierText("on") && ctx.checkIdentifierText("delete", 1)) {
+    ctx.advance();
+    ctx.advance();
+    const result = parseReferentialAction(ctx);
+    onDelete = result.action;
+    end = result.end;
+  }
+  return makeReferencesClause({
+    span: { start: keyword.span.start, end },
+    target: makeColumnReference({
+      span: { start: tableToken.span.start, end: columnToken.span.end },
+      table: tableToken.text,
+      column: columnToken.text,
+    }),
+    onDelete,
+  });
+}
+
 interface Modifiers {
   readonly primaryKey: boolean;
   readonly unique: boolean;
@@ -121,6 +178,7 @@ interface Modifiers {
 function parseModifiers(ctx: ParserContext): Modifiers {
   let primaryKey = false;
   let unique = false;
+  let references: ReferencesClause | null = null;
   let defaultClause: DefaultClause | null = null;
 
   while (true) {
@@ -140,6 +198,10 @@ function parseModifiers(ctx: ParserContext): Modifiers {
       unique = true;
       continue;
     }
+    if (ctx.checkIdentifierText("references")) {
+      references = parseReferencesClause(ctx);
+      continue;
+    }
     if (ctx.checkIdentifierText("default")) {
       const keyword = ctx.advance();
       const literal = ctx.expectKind("String", "a default literal");
@@ -152,7 +214,7 @@ function parseModifiers(ctx: ParserContext): Modifiers {
     break;
   }
 
-  return { primaryKey, unique, references: null, default: defaultClause };
+  return { primaryKey, unique, references, default: defaultClause };
 }
 
 function parseColumn(ctx: ParserContext): ColumnDeclaration {
