@@ -1,0 +1,13 @@
+schema catalog v1
+
+table a {
+  id uuid
+  1
+  name text
+}
+
+table b {
+  id uuid
+  2
+  name text
+}
