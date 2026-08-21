@@ -1,6 +1,7 @@
 import type { ColumnDeclaration, SchemaFile, TableDeclaration } from "../ast/nodes.js";
 import { createDiagnostic, type Diagnostic } from "../errors/diagnostic.js";
 import { LineIndex, type Span } from "../util/span.js";
+import { canonicalizeSchema } from "./canonical.js";
 import { IR_DUPLICATE_COLUMN, IR_DUPLICATE_TABLE } from "./codes.js";
 import { resolveColumn } from "./resolve.js";
 import { SymbolTable } from "./symbols.js";
@@ -60,7 +61,7 @@ export function buildSchema(file: SchemaFile, source: string, sourceFile: string
   }));
 
   return {
-    ir: { catalog: file.catalog, version: file.version, tables },
+    ir: canonicalizeSchema({ catalog: file.catalog, version: file.version, tables }),
     diagnostics,
   };
 }
