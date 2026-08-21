@@ -1,7 +1,10 @@
 import type { ColumnDeclaration, SchemaFile, TableDeclaration } from "../ast/nodes.js";
-import type { Span } from "../util/span.js";
+import { createDiagnostic, type Diagnostic } from "../errors/diagnostic.js";
+import { LineIndex, type Span } from "../util/span.js";
 import { IR_DUPLICATE_COLUMN, IR_DUPLICATE_TABLE } from "./codes.js";
+import { resolveColumn } from "./resolve.js";
 import { SymbolTable } from "./symbols.js";
+import type { IrSchema, IrTable } from "./types.js";
 
 export function deduplicate(
   file: SchemaFile,
@@ -25,4 +28,39 @@ export function deduplicate(
     tables.push({ ...table, columns });
   }
   return tables;
+}
+
+export interface BuildSchemaResult {
+  readonly ir: IrSchema;
+  readonly diagnostics: readonly Diagnostic[];
+}
+
+export function buildSchema(file: SchemaFile, source: string, sourceFile: string): BuildSchemaResult {
+  const lineIndex = new LineIndex(source);
+  const diagnostics: Diagnostic[] = [];
+  const report = (code: string, message: string, span: Span): void => {
+    diagnostics.push(
+      createDiagnostic({
+        code,
+        severity: "error",
+        message,
+        file: sourceFile,
+        start: lineIndex.positionAt(span.start),
+        end: lineIndex.positionAt(span.end),
+      }),
+    );
+  };
+
+  const dedupedTables = deduplicate(file, report);
+
+  const tables: IrTable[] = dedupedTables.map((table) => ({
+    name: table.name,
+    columns: table.columns.map((column) => resolveColumn(column, report)),
+    indexes: table.indexes.map((index) => ({ columns: [...index.columns], unique: index.unique })),
+  }));
+
+  return {
+    ir: { catalog: file.catalog, version: file.version, tables },
+    diagnostics,
+  };
 }
