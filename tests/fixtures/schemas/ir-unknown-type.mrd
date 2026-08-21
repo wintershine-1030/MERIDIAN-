@@ -1,0 +1,5 @@
+schema catalog v1
+
+table t {
+  id money
+}

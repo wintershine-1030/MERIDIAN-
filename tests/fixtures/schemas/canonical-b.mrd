@@ -1,0 +1,11 @@
+schema catalog v1
+
+table users {
+  name text
+  id uuid primary key
+}
+
+table posts {
+  title text
+  id uuid primary key
+}

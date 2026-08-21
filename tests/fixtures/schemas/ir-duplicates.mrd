@@ -1,0 +1,10 @@
+schema catalog v1
+
+table users {
+  id uuid
+  id text
+}
+
+table users {
+  name text
+}
