@@ -1,0 +1,6 @@
+schema catalog v1
+
+table t {
+  id uuid? primary key
+  code text unique default "AAA"
+}

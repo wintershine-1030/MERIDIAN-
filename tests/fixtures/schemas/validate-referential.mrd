@@ -1,0 +1,8 @@
+schema catalog v1
+
+table posts {
+  id uuid primary key
+  author_id uuid references missing_table.id
+  editor_id uuid references posts.missing_column
+  index (missing_index_column) unique
+}

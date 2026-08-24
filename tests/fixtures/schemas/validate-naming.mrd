@@ -1,0 +1,6 @@
+schema catalog v1
+
+table t {
+  select text
+  userName text
+}
