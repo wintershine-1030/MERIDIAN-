@@ -34,3 +34,17 @@ export const VALIDATE_UNKNOWN_INDEX_COLUMN = registerCode({
   defaultSeverity: "error",
   summary: "A table-level index references a column that does not exist on the table.",
 }).code;
+
+export const VALIDATE_NULLABLE_PRIMARY_KEY = registerCode({
+  code: "MRD4006",
+  stage: "validate",
+  defaultSeverity: "error",
+  summary: "A primary key column is declared nullable.",
+}).code;
+
+export const VALIDATE_UNIQUE_CONSTANT_DEFAULT = registerCode({
+  code: "MRD4007",
+  stage: "validate",
+  defaultSeverity: "warning",
+  summary: "A unique column has a constant default, which only the first row can use.",
+}).code;
