@@ -13,3 +13,24 @@ export const VALIDATE_NAMING_CONVENTION = registerCode({
   defaultSeverity: "warning",
   summary: "A table or column name does not follow lowercase snake_case naming.",
 }).code;
+
+export const VALIDATE_UNKNOWN_REFERENCE_TABLE = registerCode({
+  code: "MRD4003",
+  stage: "validate",
+  defaultSeverity: "error",
+  summary: "A references clause targets a table that does not exist in the schema.",
+}).code;
+
+export const VALIDATE_UNKNOWN_REFERENCE_COLUMN = registerCode({
+  code: "MRD4004",
+  stage: "validate",
+  defaultSeverity: "error",
+  summary: "A references clause targets a column that does not exist on the target table.",
+}).code;
+
+export const VALIDATE_UNKNOWN_INDEX_COLUMN = registerCode({
+  code: "MRD4005",
+  stage: "validate",
+  defaultSeverity: "error",
+  summary: "A table-level index references a column that does not exist on the table.",
+}).code;
