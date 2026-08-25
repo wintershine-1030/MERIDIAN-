@@ -1,0 +1,6 @@
+schema catalog v1
+
+table widgets {
+  id uuid primary key
+  label text
+}
