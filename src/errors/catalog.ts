@@ -1,7 +1,7 @@
 import { compareStrings } from "../util/sort.js";
 import type { Severity } from "./diagnostic.js";
 
-export type Stage = "lex" | "parse" | "resolve" | "validate" | "diff" | "plan" | "emit";
+export type Stage = "lex" | "parse" | "resolve" | "validate" | "diff" | "plan" | "emit" | "config";
 
 export interface DiagnosticCodeEntry {
   readonly code: string;
