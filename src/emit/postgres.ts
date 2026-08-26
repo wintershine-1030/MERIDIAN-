@@ -16,6 +16,7 @@ function quoteIdentifier(name: string): string {
 
 export const postgresDialect: Dialect = {
   name: "postgres",
+  capabilities: { foreignKeyActions: true, indexes: true },
   quoteIdentifier,
   mapType: (type) => TYPE_MAP[type],
 };

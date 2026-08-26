@@ -16,6 +16,7 @@ function quoteIdentifier(name: string): string {
 
 export const sqliteDialect: Dialect = {
   name: "sqlite",
+  capabilities: { foreignKeyActions: true, indexes: true },
   quoteIdentifier,
   mapType: (type) => TYPE_MAP[type],
 };
