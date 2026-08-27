@@ -1,0 +1,23 @@
+schema catalog v1
+
+table users {
+  id          uuid        primary key
+  email       text        not null unique default "unknown"
+  last_login  text?
+  rank        int?        unique
+}
+
+table posts {
+  id        uuid    primary key
+  author    uuid    not null references users.id on delete set null
+  title     text?
+  body      text
+  views     text?
+  tags      text?
+  index (author, title)
+}
+
+table comments {
+  id      uuid    primary key
+  body    text    not null
+}
