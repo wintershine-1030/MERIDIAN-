@@ -70,4 +70,17 @@ describe("buildSchema canonical ordering", () => {
     expect(b.diagnostics).toEqual([]);
     expect(a.ir).toEqual(b.ir);
   });
+
+  it("orders two same-column indexes deterministically regardless of which is declared first", () => {
+    const a = build("schemas/canonical-index-order-a.mrd");
+    const b = build("schemas/canonical-index-order-b.mrd");
+
+    expect(a.diagnostics).toEqual([]);
+    expect(b.diagnostics).toEqual([]);
+    expect(a.ir).toEqual(b.ir);
+    expect(a.ir.tables[0]?.indexes).toEqual([
+      { columns: ["x", "y"], unique: false },
+      { columns: ["x", "y"], unique: true },
+    ]);
+  });
 });

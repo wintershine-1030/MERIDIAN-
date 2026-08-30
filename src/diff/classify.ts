@@ -67,7 +67,7 @@ function formatReference(reference: IrColumnReference | null): string {
     : `${reference.table}.${reference.column} (on delete ${reference.onDelete})`;
 }
 
-function describeChange(change: Change): string {
+export function describeChange(change: Change): string {
   switch (change.kind) {
     case "table_added":
       return `table '${change.table}' was added`;

@@ -7,5 +7,9 @@ export default defineConfig({
     outputFile: {
       junit: "reports/junit.xml",
     },
+    fileParallelism: false,
+    sequence: {
+      shuffle: false,
+    },
   },
 });

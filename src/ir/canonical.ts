@@ -9,7 +9,7 @@ function canonicalizeTable(table: IrTable): IrTable {
   return {
     name: table.name,
     columns: stableSortBy(table.columns, (column) => column.name),
-    indexes: stableSortBy(table.indexes.map(canonicalizeIndex), (index) => index.columns.join(",")),
+    indexes: stableSortBy(table.indexes.map(canonicalizeIndex), (index) => `${index.columns.join(",")}:${index.unique}`),
   };
 }
 

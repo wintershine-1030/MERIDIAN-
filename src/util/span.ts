@@ -42,15 +42,17 @@ export class LineIndex {
     if (offset < 0 || offset > this.sourceLength) {
       throw new RangeError(`offset ${offset} is out of range for a source of length ${this.sourceLength}`);
     }
-    let line = 0;
-    while (line + 1 < this.lineStarts.length) {
-      const nextStart = this.lineStarts[line + 1];
-      if (nextStart === undefined || nextStart > offset) {
-        break;
+    let low = 0;
+    let high = this.lineStarts.length - 1;
+    while (low < high) {
+      const mid = Math.ceil((low + high) / 2);
+      if (this.lineStarts[mid]! > offset) {
+        high = mid - 1;
+      } else {
+        low = mid;
       }
-      line++;
     }
-    const lineStart = this.lineStarts[line]!;
-    return { line: line + 1, column: offset - lineStart + 1 };
+    const lineStart = this.lineStarts[low]!;
+    return { line: low + 1, column: offset - lineStart + 1 };
   }
 }

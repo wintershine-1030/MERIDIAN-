@@ -112,6 +112,169 @@ rather than by convention:
 This is why the test suite can assert exact output byte-for-byte, and why
 running the suite repeatedly produces identical reports.
 
+## Public API
+
+`src/index.ts` exports exactly two functions, and nothing else — every test
+in this repository asserts through one of them, never through an internal
+module path:
+
+```ts
+export interface Io {
+  readFile(path: string): string;
+  listDir(path: string): string[];
+  now(): number;
+  readonly cwd: string;
+}
+
+export interface CliResult {
+  readonly stdout: string;
+  readonly stderr: string;
+  readonly exitCode: number;
+}
+
+function runCli(argv: readonly string[], io: Io): CliResult;
+
+export interface CompileOptions {
+  readonly rules?: readonly Rule[];
+  readonly strict?: boolean;
+}
+
+export interface CompileResult {
+  readonly ok: boolean;
+  readonly ir: IrSchema | null;
+  readonly diagnostics: readonly Diagnostic[];
+}
+
+function compile(sources: Record<string, string>, options?: CompileOptions): CompileResult;
+```
+
+`compile` is the pure core: lex, parse, build IR, and validate over one or
+more in-memory sources, with no filesystem access. `runCli` wraps it with
+argument parsing, dialect selection, and the diagnostic renderers, reading
+its inputs exclusively through the injected `Io`, so it can be exercised in
+tests without ever touching a real disk.
+
+## Output contracts
+
+These shapes are frozen: nothing that emits or parses them should change
+without a very good reason.
+
+Exit codes:
+
+```
+0  success, no diagnostics above the failure threshold
+1  diagnostics at error severity (or warning, under --strict)
+2  usage error: unknown command, bad flag, missing argument
+3  input error: unreadable path
+```
+
+Diagnostic codes are `MRD####`, grouped by stage: `1xxx` lex, `2xxx` parse,
+`3xxx` resolve, `4xxx` validate, `5xxx` diff, `6xxx` plan, `7xxx` emit,
+`8xxx` config. `meridian explain <code>` prints the registered summary for
+any code.
+
+Human diagnostic output (stderr unless `--format json`), one block per
+diagnostic:
+
+```
+<severity>[<code>]: <message>
+  --> <file>:<line>:<column>
+```
+
+JSON diagnostic output (stdout, `--format json`), keys sorted
+alphabetically at every level:
+
+```json
+{
+  "diagnostics": [
+    { "code": "MRD4012", "column": 3, "file": "schema.mrd", "line": 12,
+      "message": "...", "severity": "error" }
+  ],
+  "ok": false,
+  "version": 1
+}
+```
+
+Emit output: one statement per paragraph, tables ordered by dependency
+then by name, two-space indent, identifiers quoted per dialect, trailing
+newline always present.
+
+## Usage examples
+
+Check a schema and print any diagnostics:
+
+```
+$ meridian check schema.mrd
+$ echo $?
+0
+```
+
+Emit DDL for a target dialect:
+
+```
+$ meridian emit --dialect postgres schema.mrd
+CREATE TABLE "users" (
+  "id" uuid PRIMARY KEY,
+  ...
+);
+```
+
+Compare two versions of a schema and see which changes are safe:
+
+```
+$ meridian diff schema-v1.mrd schema-v2.mrd
+compatible: column 'users.last_login' was added
+breaking: column 'users.display' was removed
+```
+
+Generate the ordered steps to get from one version to the other:
+
+```
+$ meridian plan schema-v1.mrd schema-v2.mrd
+add column 'last_login' to 'users'
+drop column 'display' from 'users'
+```
+
+Look up what a diagnostic code means:
+
+```
+$ meridian explain MRD4006
+MRD4006 [validate, error]: A primary key column is declared nullable.
+```
+
+Machine-readable output for any command that reports diagnostics:
+
+```
+$ meridian check --format json schema.mrd
+```
+
+## Diagnostic code reference
+
+| Code | Stage | Meaning |
+| --- | --- | --- |
+| MRD1001 | lex | A character does not belong to any recognized token. |
+| MRD1002 | lex | A string literal was not closed before the end of the line or file. |
+| MRD1003 | lex | An escape sequence inside a string literal is not recognized. |
+| MRD2001 | parse | A token appeared where the grammar did not expect it. |
+| MRD3001 | resolve | Two tables in the same schema declare the same name. |
+| MRD3002 | resolve | Two columns in the same table declare the same name. |
+| MRD3003 | resolve | A column declares a type name that is not a recognized scalar type. |
+| MRD4001 | validate | A table or column name matches a common SQL reserved word. |
+| MRD4002 | validate | A table or column name does not follow lowercase snake_case naming. |
+| MRD4003 | validate | A references clause targets a table that does not exist in the schema. |
+| MRD4004 | validate | A references clause targets a column that does not exist on the target table. |
+| MRD4005 | validate | A table-level index references a column that does not exist on the table. |
+| MRD4006 | validate | A primary key column is declared nullable. |
+| MRD4007 | validate | A unique column has a constant default, which only the first row can use. |
+| MRD5001 | diff | A structural change between schema versions is not backward compatible. |
+| MRD7001 | emit | The target dialect does not support foreign key referential actions. |
+| MRD7002 | emit | The target dialect does not support indexes. |
+| MRD8001 | config | The configuration file does not contain valid JSON. |
+| MRD8002 | config | A configuration field has an invalid value or type. |
+
+Run `meridian explain <code>` for the authoritative, up-to-date text for any
+code — this table is a convenience snapshot, not the source of truth.
+
 ## Project layout
 
 ```
@@ -141,9 +304,11 @@ in `package.json`, with `package-lock.json` committed.
 
 ## Status
 
-Early bootstrap. The pipeline stages above describe the target
-architecture; each is being implemented and tested incrementally, stage by
-stage, with CI enforcing typecheck, lint, and test on every push.
+The full pipeline described above is implemented and wired end to end
+through `runCli`: lex, parse, ir, validate, emit (postgres and sqlite),
+diff, plan, and both report renderers, behind the `check`, `emit`, `diff`,
+`plan`, and `explain` commands. Development continues incrementally on top
+of this base, with CI enforcing typecheck, lint, and test on every push.
 
 ## License
 

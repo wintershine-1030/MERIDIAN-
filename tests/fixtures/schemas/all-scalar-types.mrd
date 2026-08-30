@@ -1,0 +1,9 @@
+schema catalog v1
+
+table scalars {
+  id       uuid    primary key
+  name     text    not null
+  quantity int     not null
+  active   bool    not null
+  notes    text?
+}

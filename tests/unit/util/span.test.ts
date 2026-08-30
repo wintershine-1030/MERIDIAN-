@@ -61,4 +61,19 @@ describe("LineIndex", () => {
     const index = new LineIndex("abc");
     expect(() => index.positionAt(-1)).toThrow(/out of range/);
   });
+
+  it("resolves every offset correctly across many lines", () => {
+    const lineCount = 500;
+    const source = Array.from({ length: lineCount }, (_, i) => `line${i}`).join("\n");
+    const index = new LineIndex(source);
+    const lines = source.split("\n");
+
+    let offset = 0;
+    for (let lineNumber = 0; lineNumber < lines.length; lineNumber++) {
+      const line = lines[lineNumber]!;
+      expect(index.positionAt(offset)).toEqual({ line: lineNumber + 1, column: 1 });
+      expect(index.positionAt(offset + line.length)).toEqual({ line: lineNumber + 1, column: line.length + 1 });
+      offset += line.length + 1;
+    }
+  });
 });

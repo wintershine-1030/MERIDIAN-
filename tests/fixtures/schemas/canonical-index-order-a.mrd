@@ -1,0 +1,8 @@
+schema catalog v1
+
+table t {
+  x uuid
+  y uuid
+  index (x, y) unique
+  index (x, y)
+}
