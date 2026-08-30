@@ -57,4 +57,17 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ["src/report/json.ts"],
+    rules: {
+      "no-restricted-properties": [
+        "error",
+        { object: "Date", property: "now", message: "Date.now() is non-deterministic; inject a clock instead." },
+        { object: "performance", property: "now", message: "performance.now() is non-deterministic; inject a clock instead." },
+        { object: "Math", property: "random", message: "Math.random() is non-deterministic and must not be used." },
+        { object: "process", property: "env", message: "process.env is only permitted in src/config/env.ts." },
+        { property: "localeCompare", message: "localeCompare is locale-dependent; use an explicit codepoint compare." },
+      ],
+    },
+  },
 );
