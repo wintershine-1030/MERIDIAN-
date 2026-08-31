@@ -48,6 +48,28 @@ describe("runCli: usage errors", () => {
     const result = run(["diff", "a.mrd"], { "a.mrd": basic });
     expect(result.exitCode).toBe(2);
   });
+
+  it("exits 2 when check is given zero file paths, rather than silently succeeding", () => {
+    const result = run(["check"], {});
+    expect(result.exitCode).toBe(2);
+  });
+
+  it("exits 2 when emit is given zero file paths, rather than silently failing with no message", () => {
+    const result = run(["emit"], {});
+    expect(result.exitCode).toBe(2);
+    expect(result.stderr.length).toBeGreaterThan(0);
+  });
+
+  it("exits 2 for an unrecognized single-dash flag instead of treating it as a file path", () => {
+    const result = run(["check", "-x", "a.mrd"], { "a.mrd": basic });
+    expect(result.exitCode).toBe(2);
+    expect(result.stderr).toContain("-x");
+  });
+
+  it("recognizes a global flag placed before the command", () => {
+    const result = run(["--strict", "check", "a.mrd"], { "a.mrd": namingWarnings });
+    expect(result.exitCode).toBe(1);
+  });
 });
 
 describe("runCli: input errors", () => {
@@ -119,6 +141,14 @@ describe("runCli emit", () => {
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");
     expect(result.stderr.length).toBeGreaterThan(0);
+  });
+
+  it("keeps stdout as plain DDL and stderr as valid JSON diagnostics under --format json", () => {
+    const result = run(["emit", "--format", "json", "w.mrd"], { "w.mrd": widgets });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toBe(postgresWidgetsGolden);
+    expect(() => JSON.parse(result.stderr)).not.toThrow();
+    expect(JSON.parse(result.stderr)).toEqual({ diagnostics: [], ok: true, version: 1 });
   });
 });
 

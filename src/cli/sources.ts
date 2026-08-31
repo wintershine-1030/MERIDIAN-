@@ -7,7 +7,12 @@ export function normalizePath(path: string): string {
 }
 
 export function readSources(paths: readonly string[], io: Io): ReadSourcesResult {
-  const sources: Record<string, string> = {};
+  // A null-prototype object: assigning to a key like "__proto__" through a normal {}
+  // object literal silently no-ops (it sets the object's prototype rather than an own
+  // property with that name), which would make a file legitimately named "__proto__"
+  // vanish from compilation with no error. Object.create(null) makes every key, including
+  // "__proto__", behave as a plain own property.
+  const sources: Record<string, string> = Object.create(null) as Record<string, string>;
   for (const path of paths) {
     const normalized = normalizePath(path);
     try {

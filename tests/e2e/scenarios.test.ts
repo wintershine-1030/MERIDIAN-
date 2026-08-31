@@ -51,6 +51,43 @@ table posts {
     expect(result.stdout).toContain('CREATE TABLE "users"');
     expect(result.stdout).toContain('CREATE TABLE "posts"');
   });
+
+  it("does not fabricate a diagnostic on the losing side of a duplicate-table conflict", () => {
+    // a.mrd (sorts first, wins the merge) has a real nullable-primary-key bug; b.mrd (loses)
+    // declares the same table name but with a genuinely valid, non-nullable primary key.
+    // The losing file must not be validated against the winning file's (buggy) column data.
+    const a = `schema catalog v1
+
+table widgets {
+  id uuid? primary key
+}
+`;
+    const b = `schema catalog v1
+
+table widgets {
+  id uuid primary key
+}
+`;
+    const result = run(["check", "a.mrd", "b.mrd"], { "a.mrd": a, "b.mrd": b });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("MRD3001");
+    expect(result.stderr).toContain("a.mrd");
+    // b.mrd's own text ("id uuid primary key") never declares a nullable primary key, so no
+    // MRD4006 should ever be attributed to it.
+    const nullablePkOnB = result.stderr
+      .split("\n\n")
+      .some((block) => block.includes("MRD4006") && block.includes("b.mrd"));
+    expect(nullablePkOnB).toBe(false);
+  });
+
+  it("reports a mismatched catalog/version across input files", () => {
+    const result = run(["check", "a.mrd", "b.mrd"], {
+      "a.mrd": "schema catalog_a v1\n\ntable t1 {\n  id uuid primary key\n}\n",
+      "b.mrd": "schema catalog_b v9\n\ntable t2 {\n  id uuid primary key\n}\n",
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("MRD3004");
+  });
 });
 
 describe("warnings do not block emit", () => {
@@ -65,6 +102,17 @@ describe("warnings do not block emit", () => {
     const result = run(["emit", "--strict", "a.mrd"], { "a.mrd": namingWarnings });
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");
+  });
+});
+
+describe("configuration file errors", () => {
+  it("a malformed meridian.config.json is reported, not silently replaced by defaults", () => {
+    const result = run(["check", "a.mrd"], {
+      "a.mrd": "schema catalog v1\n\ntable t {\n  id uuid primary key\n}\n",
+      "meridian.config.json": "{ not valid json",
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("MRD8001");
   });
 });
 

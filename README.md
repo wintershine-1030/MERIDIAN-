@@ -114,9 +114,11 @@ running the suite repeatedly produces identical reports.
 
 ## Public API
 
-`src/index.ts` exports exactly two functions, and nothing else — every test
-in this repository asserts through one of them, never through an internal
-module path:
+`src/index.ts` exports exactly two functions, and nothing else. The
+end-to-end suite (`tests/e2e/`) asserts entirely through these two functions,
+exercising the package the same way an external caller would; unit tests
+elsewhere import internal modules directly for finer-grained, stage-by-stage
+coverage:
 
 ```ts
 export interface Io {
@@ -259,6 +261,7 @@ $ meridian check --format json schema.mrd
 | MRD3001 | resolve | Two tables in the same schema declare the same name. |
 | MRD3002 | resolve | Two columns in the same table declare the same name. |
 | MRD3003 | resolve | A column declares a type name that is not a recognized scalar type. |
+| MRD3004 | resolve | A schema file declares a different catalog or version than earlier files being compiled together. |
 | MRD4001 | validate | A table or column name matches a common SQL reserved word. |
 | MRD4002 | validate | A table or column name does not follow lowercase snake_case naming. |
 | MRD4003 | validate | A references clause targets a table that does not exist in the schema. |

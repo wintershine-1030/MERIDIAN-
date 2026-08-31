@@ -28,10 +28,6 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   let command: string | null = null;
 
   let index = 0;
-  if (argv.length > 0 && !argv[0]!.startsWith("-")) {
-    command = argv[0]!;
-    index = 1;
-  }
 
   while (index < argv.length) {
     const token = argv[index]!;
@@ -82,8 +78,13 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
       }
       continue;
     }
-    if (token.startsWith("--")) {
+    if (token.startsWith("-") && token !== "-") {
       errors.push(`unknown flag '${token}'`);
+      index++;
+      continue;
+    }
+    if (command === null) {
+      command = token;
       index++;
       continue;
     }

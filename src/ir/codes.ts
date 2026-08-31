@@ -20,3 +20,10 @@ export const IR_UNKNOWN_TYPE = registerCode({
   defaultSeverity: "error",
   summary: "A column declares a type name that is not a recognized scalar type.",
 }).code;
+
+export const IR_CATALOG_MISMATCH = registerCode({
+  code: "MRD3004",
+  stage: "resolve",
+  defaultSeverity: "error",
+  summary: "A schema file declares a different catalog or version than earlier files being compiled together.",
+}).code;

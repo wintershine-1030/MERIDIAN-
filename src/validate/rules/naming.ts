@@ -1,7 +1,6 @@
 import type { Span } from "../../util/span.js";
 import { VALIDATE_NAMING_CONVENTION, VALIDATE_RESERVED_WORD } from "../codes.js";
 import type { Rule, RuleContext } from "../engine.js";
-import { forEachColumn, forEachTable } from "../helpers.js";
 
 const RESERVED_WORDS = new Set([
   "select",
@@ -51,12 +50,23 @@ function checkName(name: string, span: Span, ctx: RuleContext): void {
 }
 
 export const reservedAndNamingRule: Rule = (ctx) => {
-  forEachTable(ctx, (table, span) => {
-    checkName(table.name, span, ctx);
-  });
-  forEachColumn(ctx, (_table, column, span) => {
-    checkName(column.name, span, ctx);
-  });
+  // Deliberately not routed through forEachTable/forEachColumn: those each make their own
+  // full pass over ctx.schema.tables, which would check every table name before any column
+  // name instead of a table together with its own columns. Diagnostic order is part of this
+  // project's frozen, byte-for-byte output contract, so this walks table-then-its-columns in
+  // one pass, same as before the helpers existed.
+  for (const table of ctx.schema.tables) {
+    const tableSpan = ctx.spans.tables.get(table.name);
+    if (tableSpan !== undefined) {
+      checkName(table.name, tableSpan, ctx);
+    }
+    for (const column of table.columns) {
+      const columnSpan = ctx.spans.columns.get(`${table.name}.${column.name}`);
+      if (columnSpan !== undefined) {
+        checkName(column.name, columnSpan, ctx);
+      }
+    }
+  }
 };
 
 export const NAMING_RULES: readonly Rule[] = [reservedAndNamingRule];
